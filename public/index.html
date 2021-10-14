@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+
+  <link rel="icon" href="images/bookicon.png">
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+  <title>Home page Book Store</title>
+
+</head>
+<body>
+
+  <div class="header">
+    <a href="/" ><span>  <img src="images/booklogo.png" alt="books_logo" class="responsive" />
+    </span> <span class="logo">The Book Store Company</span></a>
+
+    <div class="header-right">
+      <div class="search-container">
+          <input type="text" id="search" placeholder="Search..." name="search">
+          <button id="search_btn" onclick="searchByValue()"><i class="fa fa-search"></i></button>
+      </div>
+    </div>
+
+  </div>
+
+  <img src="images/bookstoreheader.jpg" alt="books_store" class="responsive" />
+
+  <div class="content">
+
+    <button class="btnstyle newbookbtn"  data-toggle="modal" href="#insertModal" type="button"> <i class="fa fa-plus"></i> New Book </button>
+
+
+      <div style="display:flex">
+      <select  id="category_filter"  name="category"  class="select">
+        <option value="" default>Book Category</option>
+
+
+      </select>
+      <select id="author_filter"   name="author"  class="select">
+        <option value="" default>Author</option>
+
+
+      </select>
+      <select id="edition_filter"   name="edition"  class="select">
+        <option value="" default>Edition</option>
+
+      </select>
+
+      <select id="year_option" onChange="changeYearOption(this.value);"   name="year_option"  class="select">
+        <option value="Exact" default>Exact</option>
+        <option value="Before">Before</option>
+        <option value="After">After</option>
+        <option value="Between">Between... and...</option>
+
+      </select>
+
+      <input type="text" class="form-control year" name="year" id="year_filter" placeholder="Year">
+      <div id="and_div"  style="display:none">
+      <span class="and"> and </span>
+      <input type="text" class="form-control year2" name="year" id="year_filter2" placeholder="Year">
+    </div>
+
+
+      <button class="btnstyle searchfilter "  type="button" onclick="searchByFilter()"> Search</button>
+
+
+
+    </div>
+
+
+
+
+    <div id="books" class="row">
+    </div>
+    <ul id="pagin">
+
+    </ul>
+
+
+  </div>
+
+  <script type="text/javascript">
+  $('document').ready( function()
+  {
+    displayBooks();
+
+    //init select category for new book/update book/ filter
+    getAuthors();
+    getEditions();
+
+    addSelectOption("category_filter",list_category);
+    addSelectOption("book_category",list_category);
+  });
+
+  //list_category:list of the category of book
+  const list_category=["Young Adult","Science Fiction","Fiction","Fantasy","Thriller","Adventure","Novel","Suspens","Fantastic","Kids","Magic"]
+
+  //pagination
+  const pageSize = 6;
+
+  let showPage = function(page) {
+    console.log("show for page " + page);
+    $(".line-content").hide();
+    $(".line-content").each(function(n) {
+      if (n >= pageSize * (page - 1) && n < pageSize * page)
+      $(this).show();
+    });
+  }
+
+
+  document.body.addEventListener( 'click', function ( event ) {
+    if( event.srcElement.classList == 'pagelink' ) {
+      console.log(event.srcElement);
+      beforeShowPage(event.srcElement);
+    };
+  } );
+
+  function beforeShowPage(eventEl)
+  {
+
+    console.log('click for pagination');
+    console.log(eventEl);
+    console.log(  document.getElementsByClassName('pagelink'));
+
+    var listpagelink= document.getElementsByClassName("pagelink");
+    for (var i = 0; i < listpagelink.length; i++) {
+      console.log(listpagelink[i]);
+      console.log(listpagelink[i].classList);
+
+      $(listpagelink[i]).removeClass("current_paggin");
+    }
+    $(eventEl).addClass("current_paggin");
+    showPage(parseInt(eventEl.innerHTML));
+  }
+
+
+  async function displayBooks() {
+    console.log("displaybook");
+    var options = { method: 'GET',
+    headers: {"Content-Type": "application/json"},
+  };
+
+  await fetch('/getAllBooks',options)
+  .then((resp) => resp.json())
+  .then(function(data) {
+    console.log("displaybookfetch");
+    displayeachbook(data.all_books);
+})
+  .catch(function(error) {
+    console.log(error);
+  });
+
+
+
+}
+
+async function getAuthors() {
+  var options = { method: 'GET',
+  headers: {"Content-Type": "application/json"},
+};
+
+await fetch('/getAuthors',options)
+.then((resp) => resp.json())
+.then(function(data) {
+  console.log(data);
+  addSelectOption("author_filter",data.list_authors);
+
+})
+.catch(function(error) {
+  console.log(error);
+});
+}
+
+async function getEditions() {
+  var options = { method: 'GET',
+  headers: {"Content-Type": "application/json"},
+};
+
+await fetch('/getEditions',options)
+.then((resp) => resp.json())
+.then(function(data) {
+  console.log(data);
+  addSelectOption("edition_filter",data.list_editions);
+
+})
+.catch(function(error) {
+  console.log(error);
+});
+
+};
+
+//help create child func
+function createNode(element) {
+  return document.createElement(element);
+};
+
+function append(parent, el) {
+  return parent.appendChild(el);
+};
+function removeElement(element) {
+   // Removes an element from the document.
+ element.parentNode.removeChild(element);
+};
+
+
+//function help to display each book from a given list string
+function displayeachbook(booksList)
+{
+  let divbooks = document.getElementById('books');
+  divbooks.innerHTML = '';
+
+
+if(!booksList || JSON.parse(booksList).length==0)
+{
+
+
+  let pnull = createNode('p');
+  pnull.style.fontStyle="italic";
+  pnull.style.weight="bold";
+  pnull.style.fontSize="18px";
+  pnull.style.fontFamily="Georgia";
+  pnull.style.color="gray";
+  pnull.style.marginTop="20px";
+  pnull.style.marginBottom="50px";
+  pnull.innerHTML = `We are sorry, there is no books available yet`;
+
+  append(divbooks,pnull);
+}
+else {
+  var books_array = JSON.parse(booksList).reverse();
+   books_array.map(function(book) {
+    //console.log("eachbook");
+  //  console.log(book);
+
+    let divcontainer = createNode('div');
+    divcontainer.style.padding="20px";
+    divcontainer.style.width="50%";
+
+    divcontainer.classList.add("row");
+    divcontainer.classList.add("line-content");//for the pagination
+    divcontainer.classList.add("fadeIn");
+
+    divcontainer.style.cursor="pointer";
+    divcontainer.onclick = function(){
+      document.getElementById('update_container').style.display="none";
+      document.getElementById('title_modal').innerHTML="Info Book";
+      document.getElementById('info_container').style.display="block";
+      document.getElementById("book_title_info").innerHTML=`${book.book_title}`;
+      document.getElementById("book_author_info").innerHTML=`${book.book_author}`;
+      document.getElementById("book_edition_info").innerHTML=`${book.book_edition}`;
+      document.getElementById("book_synopsis_info").innerHTML= `${book.book_synopsis.replace("\n","<br/>")}`;
+      document.getElementById("book_price_info").innerHTML=`${book.book_price} $`;
+      //document.getElementById("book_parution_info").innerHTML=`${book.book_parution.split('-')[0]}  `;
+      document.getElementById("book_parution_info").innerHTML= retrievedate(book.book_parution);
+
+      document.getElementById("book_category_info").innerHTML=`${book.book_category}`;
+        document.getElementById("book_cover_info").src=`${book.book_cover}`;
+      document.getElementById("btnedit").onclick=function()
+      {
+        document.getElementById('title_modal').innerHTML="Update Book";
+
+        document.getElementById("book_title_update").value=`${book.book_title}`;
+        document.getElementById("book_author_update").value=`${book.book_author}`;
+        document.getElementById("book_edition_update").value=`${book.book_edition}`;
+        document.getElementById("book_synopsis_update").value=`${book.book_synopsis}`;
+        document.getElementById("book_price_update").value=`${book.book_price}`;
+        document.getElementById("book_parution_update").value=`${book.book_parution}`;
+
+        $("#book_category_update").val(book.book_category).attr("selected","selected");
+
+        document.getElementById("book_cover_update").src=`${book.book_cover}`;
+        addSelectOption(document.getElementById("book_category_update").id,list_category);
+
+        document.getElementById("info_container").style.display="none";
+        document.getElementById("update_container").style.display="block";
+        document.getElementById("btncancel").onclick=function()
+        {
+          document.getElementById('update_container').style.display="none";
+          document.getElementById('title_modal').innerHTML="Info Book";
+          document.getElementById('info_container').style.display="block";
+
+        }
+      }
+      document.getElementById("btnbook_update").onclick=async function()
+      {
+        document.getElementById('btnbook_update').classList.add("disabled");
+        var book_title =  document.getElementById('book_title_update').value;
+        var book_author = document.getElementById('book_author_update').value;
+        var book_edition = document.getElementById('book_edition_update').value;
+        var book_price = document.getElementById('book_price_update').value;
+        var book_category = document.getElementById('book_category_update').value;
+        var book_synopsis = document.getElementById('book_synopsis_update').value;
+        var book_parution = document.getElementById('book_parution_update').value;
+
+        var book_cover = document.getElementById('book_cover_update').src;
+        var updatebook = {"book_id":book.book_id,"book_title":book_title,"book_author":book_author,"book_edition":book_edition,"book_synopsis":book_synopsis,"book_price":book_price,"book_parution":book_parution,"book_category":book_category,"book_cover":book_cover}
+
+        await updateBook(updatebook);
+      }
+
+      $('#updateModal').modal('show');
+    }
+
+
+    let divcover = createNode('div');
+    divcover.style.float='left';
+    divcover.classList.add("col-sm-5");
+
+    let divinfo = createNode('div');
+    divinfo.style.float='left';
+
+    divinfo.classList.add("col-sm-5");
+
+
+    let ptitle = createNode('p');
+    ptitle.style.fontWeight="bold";
+    ptitle.style.fontSize="35px";
+    ptitle.style.fontFamily="Avantgarde";
+    ptitle.style.marginBottom="1px";
+    ptitle.innerHTML = `${book.book_title}`;
+
+    let pauthor = createNode('p');
+    pauthor.style.fontStyle="italic";
+    pauthor.style.fontSize="25px";
+    pauthor.style.fontFamily="Georgia";
+    pauthor.style.marginBottom="2px";
+    pauthor.innerHTML = `${book.book_author}`;
+
+
+
+    let pprice = createNode('p');
+    pprice.style.fontSize="20px";
+    pprice.style.fontFamily="Georgia";
+    pprice.style.color = "green";
+    pprice.style.marginBottom="1px";
+    pprice.innerHTML = `${book.book_price} $`;
+
+
+
+    let bookcover = createNode('img');
+    bookcover.src = `${book.book_cover}`;
+    bookcover.alt="book_cover";
+    bookcover.style.height='auto';
+    bookcover.style.width='70%';
+    bookcover.style.borderRadius='10%';
+
+
+
+    let pseparator = createNode('p');
+    pseparator.style.width="60%";
+    pseparator.style.position="relative";
+    pseparator.style.left="35%";
+    pseparator.style.borderBottom="0.02rem solid #d4d4d4";
+
+
+    append(divcover, bookcover);
+    append(divinfo, ptitle);
+    append(divinfo, pauthor);
+    append(divinfo, pprice);
+
+
+
+
+
+
+    append(divcontainer,divcover);
+    append(divcontainer,divinfo);
+    append(divcontainer,pseparator);
+    append(divbooks,divcontainer);
+
+  }
+)
+}
+
+//pagination 2nd part
+
+var pageCount =  $(".line-content").length / pageSize;
+var pagintrue = document.getElementById('pagin');
+pagintrue.innerHTML='';
+if(pageCount>1)
+{
+for(var i = 0 ; i<pageCount;i++){
+  var lipage = createNode('li');
+
+
+  var pagelink = createNode('a');
+  pagelink.href='#'+(i+1)+'';
+  pagelink.innerHTML=i+1;
+  pagelink.classList.add("pagelink");
+  lipage.append(pagelink)
+
+
+  pagintrue.append(lipage);
+}
+$("#pagin li").first().find("a").addClass("current_paggin");
+
+showPage(1);
+}
+}
+
+//help cover func
+let book_cover_file="";//global parameter
+//function that show the book cover the user choosed for the insert modal
+//parameter file : the file chosen from the file browser
+var openFile = function(file) {
+  var input = file.target;
+
+  var reader = new FileReader();
+  reader.onload = function(){
+    var dataURL = reader.result;
+    var output = document.getElementById('book_cover');
+
+    output.src = dataURL;
+    document.getElementById('div_insertimg').style.display="none";
+    document.getElementById('book_cover').style.display="block";
+  };
+  reader.readAsDataURL(input.files[0]);
+  console.log(input.files[0]);
+  book_cover_file=input.files[0]
+};
+
+
+let book_cover_update_file="";//global parameter
+//function that show the book cover the user choosed for the update modal
+//parameter file : the file chosen from the file browser
+var openFileUpdate = function(file) {
+  var input = file.target;
+
+  var reader = new FileReader();
+  reader.onload = function(){
+    var dataURL = reader.result;
+    var output = document.getElementById('book_cover_update');
+
+    output.src = dataURL;
+  };
+  reader.readAsDataURL(input.files[0]);
+  console.log(input.files[0]);
+  book_cover_update_file=input.files[0]
+};
+
+
+//function that trigger the input file
+var browseFile = function() {
+
+  document.getElementById('imginput').click();
+};
+
+//function that trigger the input file update
+var browseFileUpdate = function() {
+
+  document.getElementById('imginput_update').click();
+};
+
+
+//fonction which verify that every information is enter
+function verifyBook(book,type)
+{
+  console.log(book);
+
+  if(book.book_title!="" && book.book_title!=null)
+  {
+    if(book.book_author!="" && book.book_author!=null)
+    {
+      if(book.book_edition!="" && book.book_edition!=null)
+      {
+        if(book.book_synopsis!="" && book.book_synopsis!=null)
+        {
+          if(book.book_price!="" && book.book_price!=null)
+          {
+            if(book.book_parution!='' && book.book_parution!=null)
+            {
+              if(book.book_category!="" && book.book_category!=null)
+              {
+                if(book.book_cover!="" && book.book_cover!=null)
+                {
+                  document.getElementById('error_div'+type).style.display="none";
+                  return true;
+                }
+                else {
+
+                  document.getElementById('error_message'+type).innerHTML = "Please upload the book's cover.";
+
+
+
+                }
+
+              }
+              else {
+                document.getElementById('error_message'+type).innerHTML = "Please enter the book's category.";
+
+
+
+              }
+            }
+            else {
+              document.getElementById('error_message'+type).innerHTML = "Please enter the book's parution date.";
+
+
+
+            }
+          }
+          else {
+            document.getElementById('error_message'+type).innerHTML = "Please enter the book's price.";
+
+
+
+          }
+        }
+        else {
+
+          document.getElementById('error_message'+type).innerHTML = "Please enter the book's synopsis.";
+
+
+
+        }
+      }
+      else {
+        document.getElementById('error_message'+type).innerHTML = "Please enter the book's edition.";
+
+
+      }
+    }
+    else {
+      document.getElementById('error_message'+type).innerHTML = "Please enter the book's author.";
+
+
+    }
+  }
+  else {
+    document.getElementById('error_message'+type).innerHTML = "Please enter the book's title.";
+
+
+  }
+
+  document.getElementById('error_div'+type).style.display="block";
+  document.getElementById('btnbook'+type).classList.remove("disabled");
+  return false;
+
+};
+
+
+//fonction which insert the new book to the database, as well as the new cover of the book and get its id
+var insertBook = async function() {
+  document.getElementById('btnbook').classList.add("disabled");
+  var book_title =  document.getElementById('book_title').value;
+  var book_author = document.getElementById('book_author').value;
+  var book_edition = document.getElementById('book_edition').value;
+  var book_price = document.getElementById('book_price').value;
+  var book_category = document.getElementById('book_category').value;
+  var book_synopsis = document.getElementById('book_synopsis').value;
+  var book_parution = document.getElementById('book_parution').value;
+
+  // var book_cover = document.getElementById('book_cover').src;
+  var book_cover = book_cover_file;
+  //   var book_cover = book_cover_file;
+  var newbook = {"book_id":"","book_title":book_title,"book_author":book_author,"book_edition":book_edition,"book_synopsis":book_synopsis,"book_price":book_price,"book_parution":book_parution,"book_category":book_category,"book_cover":book_cover}
+
+
+  if(verifyBook(newbook,""))
+{
+
+  var  id  = await newid().then(result => id = result);
+  newbook.book_id=id;
+
+  var coverpath=await uploadBookCover(newbook.book_cover,newbook.book_id).then(result => coverpath = result);
+  console.log(coverpath);
+  newbook.book_cover=coverpath;
+
+
+  console.log(newbook);
+
+  var options = { method: 'POST',
+  headers:{ 'Content-Type': 'application/json' },
+  body: JSON.stringify(newbook)
+}
+await fetch('/insertBook',options)
+.then(res => res.json())
+.then(async function(res) {
+  window.alert(res.message);
+  window.location.href="/";
+
+})
+
+
+.catch(error => window.alert('Error:', error));
+}
+
+
+}
+
+//function that get the new id for the new book
+async function newid()
+{
+  var newid=""
+  var options = { method: 'GET',
+  headers:{ 'Content-Type': 'application/json' }}
+await fetch('/newid',options)
+.then(res => res.json())
+.then( function(res) {
+    newid = res.newid;
+    return newid;
+})
+.catch(error => window.alert('Error:', error));
+
+return newid;
+}
+
+
+//function that update the information of the book
+async function updateBook(updatebook)
+{
+  if(book_cover_update_file!=""&&book_cover_update_file!=null)
+  {
+    updatebook.book_cover=book_cover_update_file;
+  var coverpath=await uploadBookCover(updatebook.book_cover,updatebook.book_id).then(result => coverpath = result);
+  updatebook.book_cover=coverpath;
+}
+  if(verifyBook(updatebook,"_update"))
+  {
+    var options = { method: 'POST',
+    headers:{ 'Content-Type': 'application/json' },
+    body: JSON.stringify(updatebook)
+  }
+  await fetch('/updateBook',options)
+  .then(res => res.json())
+  .then( function(res) {
+    window.alert(res.message);
+    window.location.href="/";
+  })
+
+
+  .catch(error => window.alert('Error:', error));
+}
+}
+
+//function that upload to the local cloud the cover of the book
+async  function uploadBookCover(bookCoverFile,id) {
+var book_cover=""
+  var datafile = new FormData();
+  console.log(bookCoverFile);
+  datafile.append('book_cover', bookCoverFile)
+  datafile.append('id', id)
+
+  var options = { method: 'POST',
+  body : datafile};
+
+  await fetch('/uploadCover',options)
+  .then(res => res.json())
+  .then(async function(res) {
+    book_cover = res.book_cover;
+  })
+  .catch(error => window.alert('Error:', error));
+
+  return book_cover;
+
+}
+
+//JQuery to trigger the event Enter in searhc
+$("#search").keyup(function(event) {
+    if (event.keyCode === 13) {
+        $("#search_btn").click();
+    }
+});
+
+
+//function that return all books that match the search value
+async function searchByValue()
+{
+  console.log("in search");
+  var search_value = document.getElementById('search').value;
+console.log(search_value);
+  if(search_value!=""&&search_value!=null)
+  {
+
+    var options = { method: 'POST',
+    headers:{ 'Content-Type': 'application/json' },
+    body: JSON.stringify({search_value})
+  }
+  await fetch('/searchByValue',options)
+  .then(res => res.json())
+  .then( function(res) {
+    console.log(res.listbooksearched);
+    return displayeachbook(JSON.stringify(res.listbooksearched));
+
+  })
+
+
+  .catch(error => window.alert(error));
+}
+}
+
+
+async function searchByFilter()
+{
+  var category_filter = document.getElementById('category_filter').value;
+  var author_filter =document.getElementById('author_filter').value;
+  var edition_filter =document.getElementById('edition_filter').value;
+  var year_option_filter =document.getElementById('year_option').value;
+  var year_filter =document.getElementById('year_filter').value;
+  var year_filter2 =document.getElementById('year_filter2').value;
+
+var search = {"category":category_filter,"author":author_filter,"edition":edition_filter,"year_option":year_option_filter,"year1":year_filter,"year2":year_filter2}
+
+
+    var options = { method: 'POST',
+    headers:{ 'Content-Type': 'application/json' },
+    body: JSON.stringify({search})
+  }
+  await fetch('/searchByFilter',options)
+  .then(res => res.json())
+  .then( function(res) {
+    console.log(res.listbooksearched);
+    return displayeachbook(JSON.stringify(res.listbooksearched));
+
+  })
+
+
+  .catch(error => window.alert(error));
+}
+
+
+function changeYearOption(value)
+{
+  if(value=="Between")
+  {
+    document.getElementById("and_div").style.display="flex";
+  }
+  else {
+    document.getElementById("and_div").style.display="none";
+
+  }
+}
+
+
+
+
+//func that add option to select
+//elID : select to add options
+//listOption : options to add
+function addSelectOption(elID,listOption)
+{
+
+  var selectEl =document.getElementById(elID);
+  for(var i =0;i<listOption.length-1;i++)
+  {
+    selectEl.options[selectEl.options.length] = new Option(listOption[i], listOption[i]);
+
+  }
+
+}
+
+
+//help to display month
+function retrievemonth(nbMonth)
+{
+
+	if(nbMonth==1 || nbMonth==01)
+    {
+      return "January";
+    }
+    else if(nbMonth==2 || nbMonth==02)
+    {
+      return "February";
+    }
+    else if(nbMonth==3 || nbMonth==03)
+
+    {
+      return "March";
+    }
+    else if(nbMonth==4 || nbMonth==04)
+
+    {
+      return "April";
+    }
+    else if(nbMonth==5 || nbMonth==05)
+
+    {
+      return "May";
+    }
+    else if(nbMonth==6 || nbMonth==06)
+
+    {
+      return "June";
+    }
+    else if(nbMonth==7 || nbMonth==07)
+
+    {
+      return "July";
+    }
+    else if(nbMonth==8 || nbMonth==08)
+
+    {
+      return "August";
+    }
+    else if(nbMonth==9 || nbMonth==09)
+
+    {
+      return "September";
+    }
+    else if(nbMonth==10)
+
+    {
+      return "October";
+    }
+    else if(nbMonth==11)
+
+    {
+      return "November";
+    }
+    else if(nbMonth==12)
+
+    {
+      return "December";
+    }
+
+}
+
+
+//help to display date
+function retrievedate(date)
+{
+
+
+
+	let datearray=date.split('-');
+	let year=datearray[0];
+	let month=retrievemonth(datearray[1]);
+	let day=datearray[2];
+  if(day=="1" || day=="01")
+  {
+    day="1st";
+  }
+  else if(day=="2" || day=="02")
+  {
+    day="2nd";
+  }
+  else if( day=="03")
+  {
+    day="3th";
+  }
+  else if( day=="04")
+  {
+    day="4th";
+  }
+  else if( day=="05")
+  {
+    day="5th";
+  }
+  else if( day=="06")
+  {
+    day="6th";
+  }
+  else if(day=="07")
+  {
+    day="7th";
+  }
+  else if( day=="08")
+  {
+    day="8th";
+  }
+  else if(day=="09")
+  {
+    day="9th";
+  }
+  else {
+    day=day+"th";
+
+  }
+	return month +" " + day+ " " + year;
+}
+
+
+</script>
+
+<!-- Modal Insert HTML -->
+<div id="insertModal" class="modal fade">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+
+        <h4 class="modal-title">New Book</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+      </div>
+      <div class="modal-body">
+
+        <div id="error_div" class="div_error fadeIn">
+          <p id="error_message" class="message_error "> </p>
+        </div>
+
+          <div class="row">
+            <div class="col-md-4 ">
+              <div id='div_insertimg' class="insertimg" onclick="browseFile()">
+                <i class="fa fa-image" center></i>
+                <p>Browse an image</p>
+              </div>
+              <img id='book_cover' style="display:none" class="imginserted responsive" onclick="browseFile()">
+
+              <input style="display:none"  type="file" id="imginput" name="img" accept="image/*" onchange='openFile(event)'>
+
+            </div>
+            <div class="col-md-8 ml-auto">
+
+              <div class="form-group">
+                <input type="text" class="form-control" name="title" id="book_title" placeholder="Title">
+              </div>
+              <div class="form-group">
+                <input type="text" class="form-control" name="author" id="book_author" placeholder="Author" >
+              </div>
+              <div class="form-group">
+                <input type="text" class="form-control" name="edition" id="book_edition" placeholder="Edition" >
+              </div>
+              <div class="form-group">
+                <label >Synopsis</label>
+
+                <textarea name="synopsis" id="book_synopsis" rows="8" cols="63" style="max-width:100%" ></textarea>
+              </div>
+              <div class="form-group" style="display:flex;">
+                <input type="number" style="width:90%;margin-right:15px;" class="form-control" name="price" id="book_price" placeholder="Price"  min="10" max="100">
+                <span style="font-size:20px"> $ </span>
+              </div>
+              <div class="form-group">
+                <label >Parution Date</label>
+
+                <input type="date" class="form-control" name="parution" id="book_parution" placeholder="Parution date" >
+              </div>
+
+
+              <div class="form-group ">
+
+                <select name="catagory" id="book_category" class="select_category">
+                  <option value="" default>Book Category</option>
+
+
+                </select>
+              </div>
+
+
+          </div>
+
+        </div>
+
+
+
+        <div class="form-group">
+          <button type="button" id="btnbook" class="  btn-block  btnstyle" onclick="insertBook()" >Insert new book</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Update HTML -->
+<div id="updateModal" class="modal fade">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+
+        <h4 class="modal-title" id="title_modal">Info Book</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+      </div>
+      <div class="modal-body">
+
+        <div id="error_div_update" class="div_error fadeIn">
+          <p id="error_message_update" class="message_error"> </p>
+        </div>
+
+          <div id="update_container" style="display:none;">
+          <div  class="row fadeIn">
+            <div class="col-md-4 ">
+
+
+              <img id='book_cover_update' class="imginserted responsive" onclick="browseFileUpdate()">
+
+              <input style="display:none"  type="file" id="imginput_update" name="img" accept="image/*" onchange='openFileUpdate(event)'>
+
+            </div>
+            <div class="col-md-8 ml-auto">
+
+              <div class="form-group">
+                <input    type="text" class="form-control" name="title" id="book_title_update" placeholder="Title">
+              </div>
+              <div class="form-group">
+                <input   type="text" class="form-control" name="author" id="book_author_update" placeholder="Author" >
+
+
+              </div>
+
+              <div class="form-group">
+                <input   type="text" class="form-control" name="edition" id="book_edition_update" placeholder="Edition" >
+
+
+              </div>
+
+              <div class="form-group">
+                <label>Synopsis</label>
+
+                <textarea    name="synopsis" id="book_synopsis_update" rows="8" cols="63" style="max-width:100%" ></textarea>
+
+              </div>
+              <div class="form-group" style="display:flex;">
+                <input    type="number" style="width:90%;margin-right:15px;" class="form-control" name="price" id="book_price_update" placeholder="Price"  min="10" max="100">
+                <span style="font-size:20px;"> $ </span>
+              </div>
+              <div class="form-group">
+                <label >Parution Date</label>
+
+                <input    type="date" class="form-control" name="parution" id="book_parution_update" placeholder="Parution date" >
+
+              </div>
+
+
+              <div class="form-group ">
+
+                <select    name="catagory" id="book_category_update" class="select_category">
+                  <option value="" default>Book Category</option>
+
+
+                </select>
+
+
+              </div>
+            </div>
+
+          <div class="form-group " style="display:flex">
+            <button type="button"  id="btnbook_update" class="  btn-block  btnstyle btn-lg"  > Save </button>
+            <button type="button"  id="btncancel" class="  btn-block  btnstyle btn-lg cancel"> Cancel</button>
+
+          </div>
+        </div>
+      </div>
+
+  <div id="info_container">
+          <div  class="row fadeIn">
+
+
+            <div class="col-md-4 ">
+              <img id='book_cover_info' class="coverimg responsive">
+            </div>
+            <div class="col-md-8 ml-auto">
+
+              <p class="category" id="book_category_info"></p>
+              <div style="display:inline">
+
+                <span id="book_title_info" class="title"></span>
+                <span class="price" id="book_price_info"></soan>
+
+              </div>
+
+              <p id="book_author_info" class="author"></p>
+
+              <p id="book_edition_info" class="edition"></p></br>
+              <p class="parution" id="book_parution_info"></p>
+
+              <p class="synopsis" id="book_synopsis_info"></p>
+            </div>
+            <div class="form-group" style="display:flex">
+              <button type="button"  id="btnedit" class="  btn-block btn-lg  btnstyle"  > Edit </button>
+
+            </div>
+          </div>
+
+        </div>
+
+
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
